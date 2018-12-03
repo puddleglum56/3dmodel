@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38848edd6cb716a4796607c449fdc8dc, type: 3}
+  m_Name: SteamVR_Input_ActionSet_default_In
+  m_EditorClassIdentifier: 
+  actionSet: {fileID: 0}
+  listDirection: 0
+  actions:
+  - {fileID: 11400000, guid: 3d017994d4ed21444948da972716eb39, type: 2}
+  - {fileID: 11400000, guid: 032a0e9ec459bbd409d40476c9d021bc, type: 2}
+  - {fileID: 11400000, guid: a668582bf6e4f614aa29f63ad329c662, type: 2}
+  - {fileID: 11400000, guid: 380a4122abf3b5941a46676d6e407360, type: 2}
+  - {fileID: 11400000, guid: da7a96061bf07934d90e0b39a395f136, type: 2}
+  - {fileID: 11400000, guid: e3de804892c938b4c9fe3ebf8cea4c22, type: 2}
+  - {fileID: 11400000, guid: 2e6cdeb77988ace478dcbe7f2524c22b, type: 2}
+  - {fileID: 11400000, guid: 701ea199e9fbea4449e6fb62f192e4b0, type: 2}
+  - {fileID: 11400000, guid: a18ba6bfc4d8f7745b87b10763d3b1c7, type: 2}
+  - {fileID: 11400000, guid: cbab7ecd2e4f828489d6f77e80396701, type: 2}
+  - {fileID: 11400000, guid: 179cd6d80b575d044965c2f78bd65d31, type: 2}
+  - {fileID: 11400000, guid: f04e20712fa07534590b2c30e80fb109, type: 2}
+  InteractUI: {fileID: 11400000, guid: 3d017994d4ed21444948da972716eb39, type: 2}
+  Teleport: {fileID: 11400000, guid: 032a0e9ec459bbd409d40476c9d021bc, type: 2}
+  GrabPinch: {fileID: 11400000, guid: a668582bf6e4f614aa29f63ad329c662, type: 2}
+  GrabGrip: {fileID: 11400000, guid: 380a4122abf3b5941a46676d6e407360, type: 2}
+  Pose: {fileID: 11400000, guid: da7a96061bf07934d90e0b39a395f136, type: 2}
+  SkeletonLeftHand: {fileID: 11400000, guid: e3de804892c938b4c9fe3ebf8cea4c22, type: 2}
+  SkeletonRightHand: {fileID: 11400000, guid: 2e6cdeb77988ace478dcbe7f2524c22b, type: 2}
+  Squeeze: {fileID: 11400000, guid: 701ea199e9fbea4449e6fb62f192e4b0, type: 2}
+  Plant: {fileID: 11400000, guid: a18ba6bfc4d8f7745b87b10763d3b1c7, type: 2}
+  BrushMenu: {fileID: 11400000, guid: cbab7ecd2e4f828489d6f77e80396701, type: 2}
+  SelectBrush: {fileID: 11400000, guid: 179cd6d80b575d044965c2f78bd65d31, type: 2}
+  Brush: {fileID: 11400000, guid: f04e20712fa07534590b2c30e80fb109, type: 2}

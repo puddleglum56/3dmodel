@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 2f0c8a5e75863224b80b4be23a311358
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - brushMenu: {instanceID: 0}
+  - selectBrush: {instanceID: 0}
+  - hand: {instanceID: 0}
+  - brushOutlinePrefab: {fileID: 1764943476868160, guid: 3b17b0e48daea2f4c80698a06eaffaad,
+      type: 2}
+  - brushUI: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
