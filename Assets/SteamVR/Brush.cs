@@ -18,7 +18,8 @@ namespace Valve.VR.InteractionSystem.Sample
         public GameObject brushOutlineInstance;
         public GameObject brushUI; //this is the visible UI that appears on controller model
         public GameObject brushPaintPrefab; //this is the parent of the meshes the user 'paints'
-        public GameObject brushPaintLayer;
+        public GameObject activePaintLayer;
+        public GameObject paintLayer;
         public GameObject brushSubMeshPrefab;
         public GameObject brushSubMeshInstance;
 
@@ -27,7 +28,6 @@ namespace Valve.VR.InteractionSystem.Sample
         public Vector3 brushPosition { get; set; }
         public Quaternion brushRotation { get; set; }
 
-        List<CombineInstance> brushStrokesList = new List<CombineInstance>();
 
         public int layerNumber = 1;
 
@@ -38,7 +38,10 @@ namespace Valve.VR.InteractionSystem.Sample
             SetTransformBrushOutline();
             TransformBrushOutline();
 
-            brushPaintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab); 
+            activePaintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab);
+            activePaintLayer.name = "activePaintLayer";
+            paintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab);
+            paintLayer.name = "paintLayer";
             brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
         }
 
@@ -104,9 +107,7 @@ namespace Valve.VR.InteractionSystem.Sample
             if (executeBrushState)
                 ExecuteBrush();
             else if (!(executeBrushState) & lastExecuteBrushState)
-            {
                 CleanUpBrush();
-            }
         }
 
         private void ExecuteBrush()
@@ -125,7 +126,7 @@ namespace Valve.VR.InteractionSystem.Sample
 
         private void SetBrushSubMeshInstanceTransform()
         {
-            brushSubMeshInstance.transform.parent = brushPaintLayer.transform;
+            brushSubMeshInstance.transform.parent = activePaintLayer.transform;
             brushSubMeshInstance.transform.localScale = brushOutlineInstance.transform.lossyScale;
             brushSubMeshInstance.transform.position = brushOutlineInstance.transform.position;
             brushSubMeshInstance.transform.rotation = brushOutlineInstance.transform.rotation;
@@ -133,17 +134,21 @@ namespace Valve.VR.InteractionSystem.Sample
 
         private void CleanUpBrush()
         {
-            MeshFilter[] brushStrokes = brushPaintLayer.GetComponentsInChildren<MeshFilter>(true);
+
+            MeshFilter[] brushStrokes = activePaintLayer.GetComponentsInChildren<MeshFilter>();
             CombineInstance[] combine = new CombineInstance[brushStrokes.Length];
+            List<CombineInstance> brushStrokesList = new List<CombineInstance>();
 
             for (var i = 0; i < brushStrokes.Length; i++)
             {
+                if (brushStrokes[i].sharedMesh == null)
+                    continue;
                 combine[i].mesh = brushStrokes[i].mesh;
                 combine[i].transform = brushStrokes[i].transform.localToWorldMatrix;
                 brushStrokesList.Add(combine[i]);
             }
 
-            foreach (Transform child in brushPaintLayer.transform)
+            foreach (Transform child in activePaintLayer.transform)
             {
                 GameObject.Destroy(child.gameObject);
             }
@@ -153,7 +158,7 @@ namespace Valve.VR.InteractionSystem.Sample
             brushSubMeshInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
             brushSubMeshInstance.name = "Layer " + layerNumber.ToString(); //TODO layers
             brushSubMeshInstance.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
-            brushSubMeshInstance.transform.parent = brushPaintLayer.transform;
+            brushSubMeshInstance.transform.parent = paintLayer.transform;
         }
 
         private void ChangeBrushOutline(int brushNumber)
