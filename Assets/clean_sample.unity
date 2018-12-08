@@ -154,10 +154,32 @@ MonoBehaviour:
   brushOutlineInstance: {fileID: 0}
   brushUI: {fileID: 0}
   brushPaintPrefab: {fileID: 0}
-  brushPaintLayer: {fileID: 0}
+  activePaintLayer: {fileID: 0}
+  paintLayer: {fileID: 0}
   brushSubMeshPrefab: {fileID: 0}
   brushSubMeshInstance: {fileID: 0}
   layerNumber: 1
+--- !u!114 &365194570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 365194564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb4214d35cdb8d458076d692c5f1bd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  grabWorld: {fileID: 11400000, guid: a14e43948f8ba1849a55637165bbab26, type: 2}
+  hand: {fileID: 0}
+  velocityTimeOffset: -0.011
+  paintLayer: {fileID: 0}
+  paintLayerOldScale: {x: 0, y: 0, z: 0}
+  paintLayerOldPosition: {x: 0, y: 0, z: 0}
+  LROldDistance: 0
+  LROldHeading: {x: 0, y: 0, z: 0}
+  paintLayerOldRotation: {x: 0, y: 0, z: 0, w: 0}
+  LROldMiddlePosition: {x: 0, y: 0, z: 0}
 --- !u!1 &1157951572 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 160596, guid: dc06161b6d97feb419f45f03b62e14b9,
@@ -199,11 +221,33 @@ MonoBehaviour:
   brushUI: {fileID: 0}
   brushPaintPrefab: {fileID: 1103312898766086, guid: b8e316b1f35991b43a21e2e392cf4be3,
     type: 2}
-  brushPaintLayer: {fileID: 0}
+  activePaintLayer: {fileID: 0}
+  paintLayer: {fileID: 0}
   brushSubMeshPrefab: {fileID: 1141402348703276, guid: d2f3ef14981e472469b019b59a200b36,
     type: 2}
   brushSubMeshInstance: {fileID: 0}
   layerNumber: 1
+--- !u!114 &1157951578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1157951572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb4214d35cdb8d458076d692c5f1bd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  grabWorld: {fileID: 11400000, guid: a14e43948f8ba1849a55637165bbab26, type: 2}
+  hand: {fileID: 0}
+  velocityTimeOffset: -0.011
+  paintLayer: {fileID: 0}
+  paintLayerOldScale: {x: 0, y: 0, z: 0}
+  paintLayerOldPosition: {x: 0, y: 0, z: 0}
+  LROldDistance: 0
+  LROldHeading: {x: 0, y: 0, z: 0}
+  paintLayerOldRotation: {x: 0, y: 0, z: 0, w: 0}
+  LROldMiddlePosition: {x: 0, y: 0, z: 0}
 --- !u!1001 &1872904386
 Prefab:
   m_ObjectHideFlags: 0
@@ -253,6 +297,10 @@ Prefab:
       value: 
       objectReference: {fileID: 1000012617731570, guid: d07386f0ec952ec409dc7753bcf5746b,
         type: 2}
+    - target: {fileID: 11450312, guid: dc06161b6d97feb419f45f03b62e14b9, type: 2}
+      propertyPath: useFingerJointHover
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dc06161b6d97feb419f45f03b62e14b9, type: 2}
   m_IsPrefabAsset: 0

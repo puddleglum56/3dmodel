@@ -40,5 +40,7 @@ namespace Valve.VR
         public Valve.VR.SteamVR_Action_Boolean SelectBrush;
         
         public Valve.VR.SteamVR_Action_Boolean Brush;
+        
+        public Valve.VR.SteamVR_Action_Boolean GrabWorld;
     }
 }

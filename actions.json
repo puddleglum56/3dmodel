@@ -52,6 +52,10 @@
       "type": "boolean"
     },
     {
+      "name": "/actions/default/in/GrabWorld",
+      "type": "boolean"
+    },
+    {
       "name": "/actions/default/out/Haptic",
       "type": "vibration"
     },
@@ -132,7 +136,13 @@
       "/actions/default/in/Plant": "Plant",
       "/actions/default/in/SelectBrush": "SelectBrush",
       "/actions/default/in/BrushMenu": "BrushMenu",
-      "/actions/default/in/Brush": "Brush"
+      "/actions/default/in/Brush": "Brush",
+      "/actions/default/in/LWorldGrab": "LWorldGrab",
+      "/actions/default/in/RWorldGrab": "RWorldGrab",
+      "/actions/default/in/NewAction": "GrabWorld",
+      "/actions/default/in/GrabWorld": "GrabWorld",
+      "/actions/default/in/LGrabWorld": "LGrabWorld",
+      "/actions/default/in/RGrabWorld": "RGrabWorld"
     }
   ]
 }

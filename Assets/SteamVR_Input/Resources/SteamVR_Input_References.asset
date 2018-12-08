@@ -32,6 +32,7 @@ MonoBehaviour:
   - __actions_default_in_BrushMenu
   - __actions_default_in_SelectBrush
   - __actions_default_in_Brush
+  - __actions_default_in_GrabWorld
   - __actions_default_out_Haptic
   - __actions_platformer_in_Move
   - __actions_platformer_in_Jump
@@ -52,6 +53,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cbab7ecd2e4f828489d6f77e80396701, type: 2}
   - {fileID: 11400000, guid: 179cd6d80b575d044965c2f78bd65d31, type: 2}
   - {fileID: 11400000, guid: f04e20712fa07534590b2c30e80fb109, type: 2}
+  - {fileID: 11400000, guid: a14e43948f8ba1849a55637165bbab26, type: 2}
   - {fileID: 11400000, guid: 538b132e94f0582469097e0c7543eb72, type: 2}
   - {fileID: 11400000, guid: 1e9855fc2224bff479f1125904bc7740, type: 2}
   - {fileID: 11400000, guid: 3986f3180ef2f454c92f4a74e4752187, type: 2}

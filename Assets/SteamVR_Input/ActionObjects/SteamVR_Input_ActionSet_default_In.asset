@@ -26,6 +26,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cbab7ecd2e4f828489d6f77e80396701, type: 2}
   - {fileID: 11400000, guid: 179cd6d80b575d044965c2f78bd65d31, type: 2}
   - {fileID: 11400000, guid: f04e20712fa07534590b2c30e80fb109, type: 2}
+  - {fileID: 11400000, guid: a14e43948f8ba1849a55637165bbab26, type: 2}
   InteractUI: {fileID: 11400000, guid: 3d017994d4ed21444948da972716eb39, type: 2}
   Teleport: {fileID: 11400000, guid: 032a0e9ec459bbd409d40476c9d021bc, type: 2}
   GrabPinch: {fileID: 11400000, guid: a668582bf6e4f614aa29f63ad329c662, type: 2}
@@ -38,3 +39,4 @@ MonoBehaviour:
   BrushMenu: {fileID: 11400000, guid: cbab7ecd2e4f828489d6f77e80396701, type: 2}
   SelectBrush: {fileID: 11400000, guid: 179cd6d80b575d044965c2f78bd65d31, type: 2}
   Brush: {fileID: 11400000, guid: f04e20712fa07534590b2c30e80fb109, type: 2}
+  GrabWorld: {fileID: 11400000, guid: a14e43948f8ba1849a55637165bbab26, type: 2}
