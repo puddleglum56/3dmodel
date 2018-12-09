@@ -19,6 +19,13 @@ namespace Valve.VR.InteractionSystem.Sample
         public Vector3 LROldHeading = new Vector3();
         public Quaternion paintLayerOldRotation = new Quaternion();
         public Vector3 LROldMiddlePosition = new Vector3();
+        public GameObject transformLayer;
+
+        protected void Awake()
+        {
+            transformLayer = new GameObject();
+            transformLayer.name = "transformLayer";
+        }
 
         private void OnEnable() 
         {
@@ -38,35 +45,33 @@ namespace Valve.VR.InteractionSystem.Sample
         {
             bool LGrabWorldClicked = grabWorld.GetState(hand.otherHand.handType);
             bool RGrabWorldClicked = grabWorld.GetState(hand.handType);
+            bool lastLGrabWorldClicked = grabWorld.GetLastState(hand.otherHand.handType);
+            bool lastRGrabWorldClicked = grabWorld.GetLastState(hand.handType);
 
             Vector3 LRHeading = hand.transform.position - hand.otherHand.transform.position; //vector points from left to right controller
             float LRDistance = LRHeading.magnitude;
             Vector3 LRMiddlePosition = hand.otherHand.transform.position + LRHeading / 2;
 
-            paintLayer = GameObject.Find("Layer 1");
+            paintLayer = GameObject.Find("paintLayer");
 
             if (paintLayer)
             {
                 if (LGrabWorldClicked & RGrabWorldClicked)
                 {
-
-                    paintLayer.transform.position = Vector3.zero;
-                    paintLayer.transform.rotation = Quaternion.FromToRotation(LROldHeading, LRHeading) * paintLayerOldRotation;
-                    paintLayer.transform.localScale = Vector3.one * (LRDistance - LROldDistance) + paintLayerOldScale;
-                    paintLayer.transform.position = (LRMiddlePosition - LROldMiddlePosition) + paintLayerOldPosition;
-
+                    transformLayer.transform.position = LRMiddlePosition;
+                    if (!lastLGrabWorldClicked | !lastRGrabWorldClicked)
+                        paintLayer.transform.parent = transformLayer.transform;
+                    transformLayer.transform.rotation = Quaternion.FromToRotation(LROldHeading, LRHeading) * paintLayerOldRotation;
+                    transformLayer.transform.localScale = Vector3.one * (LRDistance - LROldDistance) + paintLayerOldScale;
                 }
                 else
                 {
-                    paintLayerOldPosition = paintLayer.transform.position;
-                    paintLayerOldScale = paintLayer.transform.lossyScale;
-                    paintLayerOldRotation = paintLayer.transform.rotation;
+                    paintLayer.transform.parent = null;
+                    paintLayerOldPosition = transformLayer.transform.position;
+                    paintLayerOldScale = transformLayer.transform.lossyScale;
+                    paintLayerOldRotation = transformLayer.transform.rotation;
                     LROldDistance = LRDistance;
                     LROldHeading = LRHeading;
-                    LROldMiddlePosition = LRMiddlePosition;
-                    
-                    
-                    
                 }
             }
         }
