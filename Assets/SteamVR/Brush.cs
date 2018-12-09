@@ -158,6 +158,7 @@ namespace Valve.VR.InteractionSystem.Sample
             combinedBrushStrokes.CombineMeshes(brushStrokesList.ToArray());
             brushLayer = GameObject.CreatePrimitive(PrimitiveType.Cube);
             brushLayer.name = "Layer " + layerNumber.ToString(); //TODO layers
+            //AutoWeld(combinedBrushStrokes, 0.01f);
             brushLayer.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
             brushLayer.transform.parent = paintLayer.transform;
         }
@@ -197,6 +198,54 @@ namespace Valve.VR.InteractionSystem.Sample
         {
         }
 
+        private void AutoWeld(Mesh mesh, float threshold)
+        {
+            Vector3[] verts = mesh.vertices;
+
+            // Build new vertex buffer and remove "duplicate" verticies
+            // that are within the given threshold.
+            List<Vector3> newVerts = new List<Vector3>();
+            List<Vector2> newUVs = new List<Vector2>();
+
+            int k = 0;
+
+            foreach (Vector3 vert in verts)
+            {
+                // Has vertex already been added to newVerts list?
+                foreach (Vector3 newVert in newVerts)
+                    if (Vector3.Distance(newVert, vert) <= threshold)
+                        goto skipToNext;
+
+                // Accept new vertex!
+                newVerts.Add(vert);
+                newUVs.Add(mesh.uv[k]);
+
+                skipToNext:;
+                ++k;
+            }
+
+            // Rebuild triangles using new verticies
+            int[] tris = mesh.triangles;
+            for (int i = 0; i < tris.Length; ++i)
+            {
+                // Find new vertex point from buffer
+                for (int j = 0; j < newVerts.Count; ++j)
+                {
+                    if (Vector3.Distance(newVerts[j], verts[tris[i]]) <= threshold)
+                    {
+                        tris[i] = j;
+                        break;
+                    }
+                }
+            }
+
+            // Update mesh!
+            mesh.Clear();
+            mesh.vertices = newVerts.ToArray();
+            mesh.triangles = tris;
+            mesh.uv = newUVs.ToArray();
+            mesh.RecalculateBounds();
+        }
 
         private void OnSelectActionChange(SteamVR_Action_In actionIn)
         {
