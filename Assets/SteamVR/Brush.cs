@@ -22,6 +22,7 @@ namespace Valve.VR.InteractionSystem.Sample
         public GameObject paintLayer;
         public GameObject brushSubMeshPrefab;
         public GameObject brushSubMeshInstance;
+        public GameObject brushLayer;
 
         public int brushNumber { get; set; }
         public Vector3 brushScale { get; set; }
@@ -155,10 +156,10 @@ namespace Valve.VR.InteractionSystem.Sample
 
             Mesh combinedBrushStrokes = new Mesh();
             combinedBrushStrokes.CombineMeshes(brushStrokesList.ToArray());
-            brushSubMeshInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            brushSubMeshInstance.name = "Layer " + layerNumber.ToString(); //TODO layers
-            brushSubMeshInstance.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
-            brushSubMeshInstance.transform.parent = paintLayer.transform;
+            brushLayer = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            brushLayer.name = "Layer " + layerNumber.ToString(); //TODO layers
+            brushLayer.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
+            brushLayer.transform.parent = paintLayer.transform;
         }
 
         private void ChangeBrushOutline(int brushNumber)
