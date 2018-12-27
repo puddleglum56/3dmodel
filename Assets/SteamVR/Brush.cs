@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 using Valve.VR.InteractionSystem;
@@ -13,6 +14,7 @@ namespace Valve.VR.InteractionSystem.Sample
         public SteamVR_Action_Boolean executeBrush; //clicking the trigger executes the brush (eg. lays down a sphere where the brush outline is)
 
         public Hand hand;
+        public Player player;
 
         public GameObject brushOutlinePrefab; //this is the outline of the brush so you can see where you're going to make an object
         public GameObject brushOutlineInstance;
@@ -25,12 +27,19 @@ namespace Valve.VR.InteractionSystem.Sample
         public GameObject brushLayer;
 
         public int brushNumber { get; set; }
+        public float brushSize { get; set; }
+
         public Vector3 brushScale { get; set; }
         public Vector3 brushPosition { get; set; }
         public Quaternion brushRotation { get; set; }
 
+        public float[,,] space;
+        public int resolution; //number of voxels per unity unit
+        public Vector3 size;
+        public Vector3 center;
 
         public int layerNumber = 1;
+
 
         protected void Awake()
         {
@@ -44,6 +53,11 @@ namespace Valve.VR.InteractionSystem.Sample
             paintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab);
             paintLayer.name = "paintLayer";
             brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
+
+            FileStream fs = new FileStream(@"d:\tmp\huge_dummy_file", FileMode.CreateNew);
+            fs.Seek(2048L, SeekOrigin.Begin);
+            fs.WriteByte(1);
+            fs.Close();
         }
 
         private void OnEnable() 
@@ -60,6 +74,7 @@ namespace Valve.VR.InteractionSystem.Sample
             brushMenu.AddOnChangeListener(OnMenuActionChange, hand.handType);
             selectBrush.AddOnChangeListener(OnSelectActionChange, hand.handType);
             executeBrush.AddOnUpdateListener(OnExecuteActionUpdate, hand.handType);
+            InitializeVoxelSpace();
         }
 
         private void OnDisable()
@@ -111,6 +126,83 @@ namespace Valve.VR.InteractionSystem.Sample
                 CleanUpBrush();
         }
 
+
+
+        private void ExecuteBrush()
+        {
+            UpdateVoxels();
+            DrawVoxels();
+
+        }
+
+        private void InitializeVoxelSpace()
+        {
+            size = new Vector3(10f, 10f, 10f);
+            center = hand.transform.position;
+            resolution = 100;
+            space = new float[(int) (resolution * size[0]), (int) (resolution * size[1]), (int) (resolution * size[2])];
+            brushSize = 1f;
+
+        }
+
+        private int[] WtV(Vector3 position)
+        {
+            float voxelSize = 1 / resolution;
+            Vector3 newOrigin = new Vector3(center.x - size.x / 2, center.y - size.y / 2, center.z - size.z / 2);
+            Debug.Log(newOrigin);
+            int[] voxelPosition = new int[3] { (int) ((position.x - newOrigin.x)/voxelSize), (int) ((position.y - newOrigin.y)/voxelSize), (int) ((position.z - newOrigin.z)/voxelSize)};
+
+            return voxelPosition;
+        }
+
+        private void UpdateVoxels()
+        {
+            int[] brushVoxelPosition = WtV(brushOutlineInstance.transform.position);
+            Debug.Log(new Vector3(brushVoxelPosition[0], brushVoxelPosition[1], brushVoxelPosition[2]));
+            int brushVoxelSize = (int)brushSize * resolution;
+            Debug.Log(brushVoxelSize);
+
+            if (brushNumber == 1)
+            {
+                int x = brushVoxelSize;
+                for (var i = brushVoxelPosition[0] - x ; i < brushVoxelPosition[0] + x; i++)
+                {
+                    int y = (int)Mathf.Sqrt(Mathf.Pow(brushVoxelSize, 2) - Mathf.Pow((float)i, 2));
+                    for (var j = brushVoxelPosition[1] - y; j < brushVoxelPosition[1] + y; j++)
+                    {
+                        int z = (int)Mathf.Sqrt(Mathf.Pow(brushVoxelSize, 2) - Mathf.Pow((float)i, 2) - Mathf.Pow((float)y, 2));
+                        for (var k = brushVoxelPosition[2] - z; j < brushVoxelPosition[2] + z; k++)
+                        {
+                            space[i, j, k] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        private void DrawVoxels()
+        {
+            for (var i = 0; i < space.GetLength(0); i++)
+            {
+                for (var j = 0; j < space.GetLength(1); j++)
+                {
+                    for (var k = 0; k < space.GetLength(2); k++)
+                    {
+                        if (space[i, j, k] == 1)
+                        {
+                            brushSubMeshInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            brushSubMeshInstance.transform.localScale = Vector3.one;
+                            brushSubMeshInstance.transform.position = new Vector3(i, j, k);
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+        /*
         private void ExecuteBrush()
         {
             if (brushNumber == 0)
@@ -124,6 +216,7 @@ namespace Valve.VR.InteractionSystem.Sample
                 SetBrushSubMeshInstanceTransform();
             }
         }
+        */
 
         private void SetBrushSubMeshInstanceTransform()
         {
@@ -133,6 +226,12 @@ namespace Valve.VR.InteractionSystem.Sample
             brushSubMeshInstance.transform.rotation = brushOutlineInstance.transform.rotation;
         }
 
+        private void CleanUpBrush()
+        {
+
+        }
+
+        /*
         private void CleanUpBrush()
         {
 
@@ -158,10 +257,11 @@ namespace Valve.VR.InteractionSystem.Sample
             combinedBrushStrokes.CombineMeshes(brushStrokesList.ToArray());
             brushLayer = GameObject.CreatePrimitive(PrimitiveType.Cube);
             brushLayer.name = "Layer " + layerNumber.ToString(); //TODO layers
-            //AutoWeld(combinedBrushStrokes, 0.01f);
+            //AutoWeld(combinedBrushStrokes, 1f, 0.001f);
             brushLayer.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
             brushLayer.transform.parent = paintLayer.transform;
         }
+        */
 
         private void ChangeBrushOutline(int brushNumber)
         {
@@ -198,53 +298,79 @@ namespace Valve.VR.InteractionSystem.Sample
         {
         }
 
-        private void AutoWeld(Mesh mesh, float threshold)
+        public static void AutoWeld(Mesh mesh, float threshold, float bucketStep)
         {
-            Vector3[] verts = mesh.vertices;
+            Vector3[] oldVertices = mesh.vertices;
+            Vector3[] newVertices = new Vector3[oldVertices.Length];
+            int[] old2new = new int[oldVertices.Length];
+            int newSize = 0;
 
-            // Build new vertex buffer and remove "duplicate" verticies
-            // that are within the given threshold.
-            List<Vector3> newVerts = new List<Vector3>();
-            List<Vector2> newUVs = new List<Vector2>();
-
-            int k = 0;
-
-            foreach (Vector3 vert in verts)
+            // Find AABB
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (int i = 0; i < oldVertices.Length; i++)
             {
-                // Has vertex already been added to newVerts list?
-                foreach (Vector3 newVert in newVerts)
-                    if (Vector3.Distance(newVert, vert) <= threshold)
-                        goto skipToNext;
-
-                // Accept new vertex!
-                newVerts.Add(vert);
-                newUVs.Add(mesh.uv[k]);
-
-                skipToNext:;
-                ++k;
+                if (oldVertices[i].x < min.x) min.x = oldVertices[i].x;
+                if (oldVertices[i].y < min.y) min.y = oldVertices[i].y;
+                if (oldVertices[i].z < min.z) min.z = oldVertices[i].z;
+                if (oldVertices[i].x > max.x) max.x = oldVertices[i].x;
+                if (oldVertices[i].y > max.y) max.y = oldVertices[i].y;
+                if (oldVertices[i].z > max.z) max.z = oldVertices[i].z;
             }
 
-            // Rebuild triangles using new verticies
-            int[] tris = mesh.triangles;
-            for (int i = 0; i < tris.Length; ++i)
+            // Make cubic buckets, each with dimensions "bucketStep"
+            int bucketSizeX = Mathf.FloorToInt((max.x - min.x) / bucketStep) + 1;
+            int bucketSizeY = Mathf.FloorToInt((max.y - min.y) / bucketStep) + 1;
+            int bucketSizeZ = Mathf.FloorToInt((max.z - min.z) / bucketStep) + 1;
+            List<int>[,,] buckets = new List<int>[bucketSizeX, bucketSizeY, bucketSizeZ];
+
+            // Make new vertices
+            for (int i = 0; i < oldVertices.Length; i++)
             {
-                // Find new vertex point from buffer
-                for (int j = 0; j < newVerts.Count; ++j)
+                // Determine which bucket it belongs to
+                int x = Mathf.FloorToInt((oldVertices[i].x - min.x) / bucketStep);
+                int y = Mathf.FloorToInt((oldVertices[i].y - min.y) / bucketStep);
+                int z = Mathf.FloorToInt((oldVertices[i].z - min.z) / bucketStep);
+
+                // Check to see if it's already been added
+                if (buckets[x, y, z] == null)
+                    buckets[x, y, z] = new List<int>(); // Make buckets lazily
+
+                for (int j = 0; j < buckets[x, y, z].Count; j++)
                 {
-                    if (Vector3.Distance(newVerts[j], verts[tris[i]]) <= threshold)
+                    Vector3 to = newVertices[buckets[x, y, z][j]] - oldVertices[i];
+                    if (Vector3.SqrMagnitude(to) < threshold)
                     {
-                        tris[i] = j;
-                        break;
+                        old2new[i] = buckets[x, y, z][j];
+                        goto skip; // Skip to next old vertex if this one is already there
                     }
                 }
+
+                // Add new vertex
+                newVertices[newSize] = oldVertices[i];
+                buckets[x, y, z].Add(newSize);
+                old2new[i] = newSize;
+                newSize++;
+
+                skip:;
             }
 
-            // Update mesh!
+            // Make new triangles
+            int[] oldTris = mesh.triangles;
+            int[] newTris = new int[oldTris.Length];
+            for (int i = 0; i < oldTris.Length; i++)
+            {
+                newTris[i] = old2new[oldTris[i]];
+            }
+
+            Vector3[] finalVertices = new Vector3[newSize];
+            for (int i = 0; i < newSize; i++)
+                finalVertices[i] = newVertices[i];
+
             mesh.Clear();
-            mesh.vertices = newVerts.ToArray();
-            mesh.triangles = tris;
-            mesh.uv = newUVs.ToArray();
-            mesh.RecalculateBounds();
+            mesh.vertices = finalVertices;
+            mesh.triangles = newTris;
+            mesh.RecalculateNormals();
         }
 
         private void OnSelectActionChange(SteamVR_Action_In actionIn)
