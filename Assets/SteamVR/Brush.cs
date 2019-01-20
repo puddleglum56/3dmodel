@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using Valve.VR.InteractionSystem;
+using System.Linq;
 
 namespace Valve.VR.InteractionSystem.Sample
 {
@@ -29,6 +30,118 @@ namespace Valve.VR.InteractionSystem.Sample
         public Vector3 brushPosition { get; set; }
         public Quaternion brushRotation { get; set; }
 
+        bool initialMeshLayed = false;
+        Vector3 oldPoint = Vector3.zero;
+
+        public Layer activeLayer;
+
+        public class smartVertex
+        {
+            public smartVertex()
+            {
+            }
+
+            public smartVertex(Vector3 position, int type)
+            {
+            }
+
+            public Vector3 position { get; set; }
+            public int type { get; set; }
+            public List<int> triangles { get; set; }
+            public Vector3 normal { get; set; }
+            public Vector2 uv { get; set; }
+        }
+
+        public class smartTriangle
+        {
+            public int[] vertices { get; set; }
+            public int type { get; set; }
+        }
+
+        public class Stroke
+        {
+            public List<smartVertex> smartVertices { get; set; }
+            public List<smartTriangle> smartTriangles { get; set; }
+            public Mesh mesh { get; set; }
+
+            public Stroke() { }
+
+            public Stroke(Mesh mesh)
+            {
+                meshToStroke(mesh);
+            }
+
+            public Stroke(GameObject gameObject)
+            {
+                MeshFilter filter = gameObject.GetComponent<MeshFilter>();
+                mesh = filter.mesh;
+                meshToStroke(mesh);
+                for (int v = 0; v < mesh.vertices.Length; v++)
+                    smartVertices[v].position = gameObject.transform.TransformPoint(mesh.vertices[v]);
+            }
+
+            public Mesh strokeToMesh()
+            {
+                Vector3[] vertices = new Vector3[smartVertices.Count];
+                Vector3[] normals = new Vector3[smartVertices.Count];
+                Vector2[] uvs = new Vector2[smartVertices.Count];
+
+                int[] triangles = new int[smartTriangles.Count * 3];
+
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    vertices[i] = smartVertices[i].position;
+                    normals[i] = smartVertices[i].normal;
+                    uvs[i] = smartVertices[i].uv;
+                }
+                int tc = 0;
+                for (int i = 0; i < triangles.Length; i+=3)
+                {
+                    triangles[i] = smartTriangles[tc].vertices[0];
+                    triangles[i+1] = smartTriangles[tc].vertices[1];
+                    triangles[i+2] = smartTriangles[tc].vertices[2];
+                    tc++;
+                }
+
+                mesh.vertices = vertices;
+                mesh.triangles = triangles;
+                mesh.uv = uvs;
+                mesh.normals = normals;
+
+                return mesh;
+            }
+
+            void meshToStroke(Mesh mesh)
+            {
+                for (int v = 0; v < mesh.vertices.Length; v++)
+                {
+                    smartVertex sVert = new smartVertex();
+                    sVert.position = mesh.vertices[v];
+                    if (v < mesh.normals.Length)
+                        sVert.normal = mesh.normals[v];
+                    if (v < mesh.uv.Length)
+                        sVert.uv = mesh.uv[v];
+                    sVert.triangles = new List<int>();
+                    smartVertices.Add(sVert);
+                }
+                int tc = 0;
+                for (int t = 0; t < mesh.triangles.Length; t+=3)
+                {
+                    smartTriangle sTri = new smartTriangle();
+                    sTri.vertices = new int[] { mesh.triangles[t], mesh.triangles[t + 1], mesh.triangles[t + 2] };
+                    sTri.type = 1;
+                    smartTriangles.Add(sTri);
+
+                    smartVertices[mesh.triangles[t]].triangles.Add(tc);
+                    smartVertices[mesh.triangles[t + 1]].triangles.Add(tc);
+                    smartVertices[mesh.triangles[t + 2]].triangles.Add(tc);
+                    
+                    tc++;
+                }
+            }
+        }
+
+        public class Layer : List<Stroke> { };
 
         public int layerNumber = 1;
 
@@ -42,8 +155,10 @@ namespace Valve.VR.InteractionSystem.Sample
             activePaintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab);
             activePaintLayer.name = "activePaintLayer";
             paintLayer = GameObject.Instantiate<GameObject>(brushPaintPrefab);
+            paintLayer.transform.position = Vector3.zero;
             paintLayer.name = "paintLayer";
-            brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
+            activeLayer = new Layer();
+            
         }
 
         private void OnEnable() 
@@ -104,14 +219,76 @@ namespace Valve.VR.InteractionSystem.Sample
         {
             bool executeBrushState = executeBrush.GetState(hand.handType);
             bool lastExecuteBrushState = executeBrush.GetLastState(hand.handType);
-            
-            if (executeBrushState)
-                ExecuteBrush();
-            else if (!(executeBrushState) & lastExecuteBrushState)
-                CleanUpBrush();
+            float brushResolution = 0.1f;
+
+            if (executeBrush & !lastExecuteBrushState)
+            {
+                oldPoint = hand.transform.position;
+            }
+            else if (executeBrushState & lastExecuteBrushState)
+            {
+                if (Vector3.Distance(hand.transform.position, oldPoint) > 0.01f & !initialMeshLayed)
+                {
+                    StartExtrudeBrush(oldPoint);
+                    initialMeshLayed = true;
+                }
+                if (Vector3.Distance(hand.transform.position, oldPoint) > brushResolution & initialMeshLayed)
+                {
+                    oldPoint = hand.transform.position;
+                    //MiddleExtrudeBrush(oldPoint);
+                }
+            }
+            else if (!executeBrushState & lastExecuteBrushState)
+            {
+                initialMeshLayed = false;
+                oldPoint = Vector3.zero;
+                //EndExtrudeBrush();
+            //    CleanUpBrush();
+            }
+            /*
+            if (initialMeshLayed)
+                RenderPaint();
+            */
         }
 
-        private void ExecuteBrush()
+        private void RenderPaint()
+        {
+            MeshFilter filter = paintLayer.GetComponent<MeshFilter>();
+
+            Mesh mesh = filter.mesh;
+
+            Vector3[] vertices = new Vector3[activeLayer[0].smartVertices.Count];
+            Vector3[] normals = new Vector3[activeLayer[0].smartVertices.Count];
+            Vector2[] uvs = new Vector2[activeLayer[0].smartVertices.Count];
+            Color[] colors = new Color[vertices.Length];
+
+            int[] triangles = new int[activeLayer[0].smartTriangles.Count * 3];
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = activeLayer[0].smartVertices[i].position;
+                normals[i] = activeLayer[0].smartVertices[i].normal;
+                uvs[i] = activeLayer[0].smartVertices[i].uv;
+                if (activeLayer[0].smartVertices[i].type == 0)
+                    colors[i] = Color.blue;
+            }
+            int tc = 0;
+            for (int i = 0; i < triangles.Length; i+=3)
+            {
+                triangles[i] = activeLayer[0].smartTriangles[tc].vertices[0];
+                triangles[i+1] = activeLayer[0].smartTriangles[tc].vertices[1];
+                triangles[i+2] = activeLayer[0].smartTriangles[tc].vertices[2];
+                tc++;
+            }
+
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.uv = uvs;
+            mesh.normals = normals;
+            mesh.colors = colors;
+        }
+
+        private void StartExtrudeBrush(Vector3 oldPoint)
         {
             if (brushNumber == 0)
             {
@@ -120,48 +297,58 @@ namespace Valve.VR.InteractionSystem.Sample
             }
             else if (brushNumber == 1)
             {
-                brushSubMeshInstance = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
+                brushSubMeshInstance.AddComponent<MeshFilter>();
+                Stroke activeStroke = new Stroke();
+                activeStroke.smartTriangles = new List<smartTriangle>();
+                activeStroke.smartVertices = new List<smartVertex>();
+                activeLayer.Add(activeStroke);
+                brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateSphere(true);
+                SetBrushSubMeshInstanceTransform();
+                brushSubMeshInstance.transform.rotation = Quaternion.FromToRotation(Vector3.down, hand.transform.position - oldPoint);
+                PopulateVertList(brushSubMeshInstance);
+                RenderPaint();
+            }
+
+        }
+
+        private void MiddleExtrudeBrush(Vector3 oldPoint)
+        {
+            if (brushNumber == 0)
+            {
+                brushSubMeshInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 SetBrushSubMeshInstanceTransform();
             }
+            else if (brushNumber == 1)
+            {
+                brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
+                brushSubMeshInstance.AddComponent<MeshFilter>();
+                Stroke tempStroke = new Stroke();
+                tempStroke.smartTriangles = new List<smartTriangle>();
+                tempStroke.smartVertices = new List<smartVertex>();
+                //brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateRing();
+                SetBrushSubMeshInstanceTransform();
+                brushSubMeshInstance.transform.rotation = Quaternion.FromToRotation(Vector3.down, hand.transform.position - oldPoint);
+                PopulateVertList(brushSubMeshInstance);
+                JoinMeshes();
+                RenderPaint();
+            }
+        }
+
+        private void EndExtrudeBrush()
+        {
+
         }
 
         private void SetBrushSubMeshInstanceTransform()
         {
-            brushSubMeshInstance.transform.parent = activePaintLayer.transform;
-            brushSubMeshInstance.transform.localScale = brushOutlineInstance.transform.lossyScale;
+            //brushSubMeshInstance.transform.parent = activePaintLayer.transform;
+            //brushSubMeshInstance.transform.localScale = Vector3.one;
             brushSubMeshInstance.transform.position = brushOutlineInstance.transform.position;
             brushSubMeshInstance.transform.rotation = brushOutlineInstance.transform.rotation;
         }
 
-        private void CleanUpBrush()
-        {
 
-            MeshFilter[] brushStrokes = activePaintLayer.GetComponentsInChildren<MeshFilter>();
-            CombineInstance[] combine = new CombineInstance[brushStrokes.Length];
-            List<CombineInstance> brushStrokesList = new List<CombineInstance>();
-
-            for (var i = 0; i < brushStrokes.Length; i++)
-            {
-                if (brushStrokes[i].sharedMesh == null)
-                    continue;
-                combine[i].mesh = brushStrokes[i].mesh;
-                combine[i].transform = brushStrokes[i].transform.localToWorldMatrix;
-                brushStrokesList.Add(combine[i]);
-            }
-
-            foreach (Transform child in activePaintLayer.transform)
-            {
-                GameObject.Destroy(child.gameObject);
-            }
-
-            Mesh combinedBrushStrokes = new Mesh();
-            combinedBrushStrokes.CombineMeshes(brushStrokesList.ToArray());
-            brushLayer = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            brushLayer.name = "Layer " + layerNumber.ToString(); //TODO layers
-            //AutoWeld(combinedBrushStrokes, 0.01f);
-            brushLayer.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
-            brushLayer.transform.parent = paintLayer.transform;
-        }
 
         private void ChangeBrushOutline(int brushNumber)
         {
@@ -198,53 +385,387 @@ namespace Valve.VR.InteractionSystem.Sample
         {
         }
 
-        private void AutoWeld(Mesh mesh, float threshold)
+        private Mesh CreateSphere(bool hemisphere)
         {
-            Vector3[] verts = mesh.vertices;
 
-            // Build new vertex buffer and remove "duplicate" verticies
-            // that are within the given threshold.
-            List<Vector3> newVerts = new List<Vector3>();
-            List<Vector2> newUVs = new List<Vector2>();
+            // Longitude |||
+            int nbLong = 24;
+            // Latitude ---
+            int nbLat = 16;
+            float radius = 0.5f;
 
-            int k = 0;
+            #region Vertices
+            Vector3[] vertices = new Vector3[(nbLong + 1) * ((hemisphere) ? nbLat / 2 : nbLat) + 2];
+            float _pi = Mathf.PI;
+            float _2pi = _pi * 2f;
 
-            foreach (Vector3 vert in verts)
+            vertices[0] = Vector3.up * radius;
+            for (int lat = 0; lat < ((hemisphere) ? nbLat / 2 : nbLat); lat++)
             {
-                // Has vertex already been added to newVerts list?
-                foreach (Vector3 newVert in newVerts)
-                    if (Vector3.Distance(newVert, vert) <= threshold)
-                        goto skipToNext;
+                float a1 = _pi * (float)(lat + 1) / (nbLat + 1);
+                float sin1 = Mathf.Sin(a1);
+                float cos1 = Mathf.Cos(a1);
 
-                // Accept new vertex!
-                newVerts.Add(vert);
-                newUVs.Add(mesh.uv[k]);
+                for (int lon = 0; lon <= nbLong; lon++)
+                {
+                    float a2 = _2pi * (float)(lon == nbLong ? 0 : lon) / nbLong;
+                    float sin2 = Mathf.Sin(a2);
+                    float cos2 = Mathf.Cos(a2);
 
-                skipToNext:;
-                ++k;
+                    vertices[lon + lat * (nbLong + 1) + 1] = new Vector3(sin1 * cos2, cos1, sin1 * sin2) * radius;
+                }
+            }
+            vertices[vertices.Length - 1] = Vector3.up * -radius;
+            #endregion
+
+            #region Normals		
+            Vector3[] normals = new Vector3[vertices.Length];
+            for (int n = 0; n < vertices.Length; n++)
+                normals[n] = vertices[n].normalized;
+            #endregion
+
+            #region UVs
+            Vector2[] uvs = new Vector2[vertices.Length];
+            uvs[0] = Vector2.up;
+            uvs[uvs.Length - 1] = Vector2.zero;
+            //for (int lat = 0; lat < nbLat; lat++)
+            for (int lat = 0; lat < ((hemisphere) ? nbLat / 2 : nbLat); lat++)
+                for (int lon = 0; lon <= nbLong; lon++)
+                {
+                    //uvs[lon + lat * (nbLong + 1) + 1] = new Vector2((float)lon / nbLong, 1f - (float)(lat + 1) / (nbLat + 1));
+                    if (!hemisphere) uvs[lon + lat * (nbLong + 1) + 1] = new Vector2((float)lon / nbLong, 1f - (float)(lat + 1) / (nbLat + 1));
+                    else uvs[lon + lat * (nbLong + 1) + 1] = new Vector2((float)lon / nbLong, 1f - (float)(lat + 1) / (nbLat / 2));
+                }
+            #endregion
+
+            #region Triangles
+            int nbFaces = vertices.Length;
+            int nbTriangles = nbFaces * 2;
+            int nbIndexes = nbTriangles * 3;
+            int[] triangles = new int[nbIndexes];
+
+            //Top Cap
+            int i = 0;
+            for (int lon = 0; lon < nbLong; lon++)
+            {
+                triangles[i++] = lon + 2;
+                triangles[i++] = lon + 1;
+                triangles[i++] = 0;
             }
 
-            // Rebuild triangles using new verticies
-            int[] tris = mesh.triangles;
-            for (int i = 0; i < tris.Length; ++i)
+            //Middle
+            for (int lat = 0; lat < ((hemisphere) ? nbLat / 2 : nbLat) - 1; lat++)
             {
-                // Find new vertex point from buffer
-                for (int j = 0; j < newVerts.Count; ++j)
+                for (int lon = 0; lon < nbLong; lon++)
                 {
-                    if (Vector3.Distance(newVerts[j], verts[tris[i]]) <= threshold)
-                    {
-                        tris[i] = j;
-                        break;
-                    }
+                    int current = lon + lat * (nbLong + 1) + 1;
+                    int next = current + nbLong + 1;
+
+                    triangles[i++] = current;
+                    triangles[i++] = current + 1;
+                    triangles[i++] = next + 1;
+
+                    triangles[i++] = current;
+                    triangles[i++] = next + 1;
+                    triangles[i++] = next;
                 }
             }
 
-            // Update mesh!
-            mesh.Clear();
-            mesh.vertices = newVerts.ToArray();
-            mesh.triangles = tris;
-            mesh.uv = newUVs.ToArray();
-            mesh.RecalculateBounds();
+
+            if (!hemisphere)
+            {
+                //Bottom Cap
+                for (int lon = 0; lon < nbLong; lon++)
+                {
+                    triangles[i++] = vertices.Length - 1;
+                    triangles[i++] = vertices.Length - (lon + 2) - 1;
+                    triangles[i++] = vertices.Length - (lon + 1) - 1;
+                }
+            }
+            #endregion
+
+            Mesh mesh = new Mesh();
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.uv = uvs;
+            mesh.normals = normals;
+
+            return mesh;
+        }
+        
+        private Stroke CreateRing(Stroke stroke)
+        {
+
+            // Longitude |||
+            int nbLong = 24;
+            float radius = 0.5f;
+
+            #region Vertices
+            Vector3[] vertices = new Vector3[nbLong];
+            float _pi = Mathf.PI;
+            float _2pi = _pi * 2f;
+
+            for (int lon = 0; lon < nbLong; lon++)
+            {
+                float a2 = _2pi * (float)lon / nbLong;
+                float sin2 = Mathf.Sin(a2);
+                float cos2 = Mathf.Cos(a2);
+
+                smartVertex sVert = new smartVertex(new Vector3(cos2, 0, sin2) * radius, 0);
+                stroke.smartVertices.Add(sVert);
+            }
+            #endregion
+
+            return stroke;
+        }
+        private void PopulateVertList(GameObject gameObject)
+        {
+            int nbLong = 24;
+            MeshFilter filter = gameObject.GetComponent<MeshFilter>();
+            Mesh mesh = filter.mesh;
+            for (int v = 0; v < mesh.vertices.Length; v++)
+            {
+                smartVertex sVert = new smartVertex();
+                sVert.position = gameObject.transform.TransformPoint(mesh.vertices[v]);
+                sVert.normal = mesh.normals[v];
+                sVert.uv = mesh.uv[v];
+                sVert.type = 1;
+                if (mesh.vertices.Length - v <= nbLong+2)
+                    sVert.type = 0;
+                sVert.triangles = new List<int>();
+                activeLayer[0].smartVertices.Add(sVert);
+            }
+            int tc = 0;
+            for (int t = 0; t < mesh.triangles.Length; t+=3)
+            {
+                smartTriangle sTri = new smartTriangle();
+                sTri.vertices = new int[] { mesh.triangles[t], mesh.triangles[t + 1], mesh.triangles[t + 2] };
+                sTri.type = 1;
+                activeLayer[0].smartTriangles.Add(sTri);
+
+                activeLayer[0].smartVertices[mesh.triangles[t]].triangles.Add(tc);
+                activeLayer[0].smartVertices[mesh.triangles[t + 1]].triangles.Add(tc);
+                activeLayer[0].smartVertices[mesh.triangles[t + 2]].triangles.Add(tc);
+                
+                tc++;
+            }
+        }
+
+        private void JoinMeshes()
+        {
+
+        }
+
+        private void CleanUpBrush()
+        {
+            MeshFilter[] brushStrokes = activePaintLayer.GetComponentsInChildren<MeshFilter>();
+            CombineInstance[] combine = new CombineInstance[brushStrokes.Length];
+            List<CombineInstance> brushStrokesList = new List<CombineInstance>();
+
+            for (var i = 0; i < brushStrokes.Length; i++)
+            {
+                if (brushStrokes[i].sharedMesh == null)
+                    continue;
+                combine[i].mesh = brushStrokes[i].mesh;
+                combine[i].transform = brushStrokes[i].transform.localToWorldMatrix;
+                brushStrokesList.Add(combine[i]);
+            }
+
+            foreach (Transform child in activePaintLayer.transform)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
+
+            Mesh combinedBrushStrokes = new Mesh();
+            combinedBrushStrokes.CombineMeshes(brushStrokesList.ToArray());
+            brushLayer = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            brushLayer.name = "Layer " + layerNumber.ToString(); //TODO layers
+            brushLayer.GetComponent<MeshFilter>().mesh = combinedBrushStrokes;
+            brushLayer.transform.parent = paintLayer.transform;
+        }
+        private void CreateTube(GameObject meshObject)
+        {
+            MeshFilter filter = meshObject.GetComponent<MeshFilter>();
+            Mesh mesh = filter.mesh;
+
+            float height = 0.5f;
+            int nbSides = 24;
+
+            // Outter shell is at radius1 + radius2 / 2, inner shell at radius1 - radius2 / 2
+            float bottomRadius1 = .5f;
+            float bottomRadius2 = .15f;
+            float topRadius1 = .5f;
+            float topRadius2 = .15f;
+
+            int nbVerticesCap = nbSides * 2 + 2;
+            int nbVerticesSides = nbSides * 2 + 2;
+
+            // bottom + top + sides
+            Vector3[] vertices = new Vector3[nbVerticesSides];
+            int vert = 0;
+            float _2pi = Mathf.PI * 2f;
+
+            // Bottom cap
+            int sideCounter = 0;
+
+            // Sides (out)
+            sideCounter = 0;
+            while (vert < nbVerticesCap * 2 + nbVerticesSides)
+            {
+                sideCounter = sideCounter == nbSides ? 0 : sideCounter;
+
+                float r1 = (float)(sideCounter++) / nbSides * _2pi;
+                float cos = Mathf.Cos(r1);
+                float sin = Mathf.Sin(r1);
+
+                vertices[vert] = new Vector3(cos * (topRadius1 + topRadius2 * .5f), height, sin * (topRadius1 + topRadius2 * .5f));
+                vertices[vert + 1] = new Vector3(cos * (bottomRadius1 + bottomRadius2 * .5f), 0, sin * (bottomRadius1 + bottomRadius2 * .5f));
+                vert += 2;
+            }
+
+
+            // bottom + top + sides
+            Vector3[] normales = new Vector3[vertices.Length];
+            vert = 0;
+
+
+            // Sides (out)
+            sideCounter = 0;
+            while (vert < nbVerticesCap * 2 + nbVerticesSides)
+            {
+                sideCounter = sideCounter == nbSides ? 0 : sideCounter;
+
+                float r1 = (float)(sideCounter++) / nbSides * _2pi;
+
+                normales[vert] = new Vector3(Mathf.Cos(r1), 0f, Mathf.Sin(r1));
+                normales[vert + 1] = normales[vert];
+                vert += 2;
+            }
+
+
+            #region UVs
+            Vector2[] uvs = new Vector2[vertices.Length];
+
+            vert = 0;
+            // Bottom cap
+            sideCounter = 0;
+            while (vert < nbVerticesCap)
+            {
+                float t = (float)(sideCounter++) / nbSides;
+                uvs[vert++] = new Vector2(0f, t);
+                uvs[vert++] = new Vector2(1f, t);
+            }
+
+            // Top cap
+            sideCounter = 0;
+            while (vert < nbVerticesCap * 2)
+            {
+                float t = (float)(sideCounter++) / nbSides;
+                uvs[vert++] = new Vector2(0f, t);
+                uvs[vert++] = new Vector2(1f, t);
+            }
+
+            // Sides (out)
+            sideCounter = 0;
+            while (vert < nbVerticesCap * 2 + nbVerticesSides)
+            {
+                float t = (float)(sideCounter++) / nbSides;
+                uvs[vert++] = new Vector2(t, 0f);
+                uvs[vert++] = new Vector2(t, 1f);
+            }
+
+            // Sides (in)
+            sideCounter = 0;
+            while (vert < vertices.Length)
+            {
+                float t = (float)(sideCounter++) / nbSides;
+                uvs[vert++] = new Vector2(t, 0f);
+                uvs[vert++] = new Vector2(t, 1f);
+            }
+            #endregion
+
+            #region Triangles
+            int nbFace = nbSides * 4;
+            int nbTriangles = nbFace * 2;
+            int nbIndexes = nbTriangles * 3;
+            int[] triangles = new int[nbIndexes];
+
+            // Bottom cap
+            int i = 0;
+            sideCounter = 0;
+            while (sideCounter < nbSides)
+            {
+                int current = sideCounter * 2;
+                int next = sideCounter * 2 + 2;
+
+                triangles[i++] = next + 1;
+                triangles[i++] = next;
+                triangles[i++] = current;
+
+                triangles[i++] = current + 1;
+                triangles[i++] = next + 1;
+                triangles[i++] = current;
+
+                sideCounter++;
+            }
+
+            // Top cap
+            while (sideCounter < nbSides * 2)
+            {
+                int current = sideCounter * 2 + 2;
+                int next = sideCounter * 2 + 4;
+
+                triangles[i++] = current;
+                triangles[i++] = next;
+                triangles[i++] = next + 1;
+
+                triangles[i++] = current;
+                triangles[i++] = next + 1;
+                triangles[i++] = current + 1;
+
+                sideCounter++;
+            }
+
+            // Sides (out)
+            while (sideCounter < nbSides * 3)
+            {
+                int current = sideCounter * 2 + 4;
+                int next = sideCounter * 2 + 6;
+
+                triangles[i++] = current;
+                triangles[i++] = next;
+                triangles[i++] = next + 1;
+
+                triangles[i++] = current;
+                triangles[i++] = next + 1;
+                triangles[i++] = current + 1;
+
+                sideCounter++;
+            }
+
+
+            // Sides (in)
+            while (sideCounter < nbSides * 4)
+            {
+                int current = sideCounter * 2 + 6;
+                int next = sideCounter * 2 + 8;
+
+                triangles[i++] = next + 1;
+                triangles[i++] = next;
+                triangles[i++] = current;
+
+                triangles[i++] = current + 1;
+                triangles[i++] = next + 1;
+                triangles[i++] = current;
+
+                sideCounter++;
+            }
+            #endregion
+
+            mesh.vertices = vertices;
+            mesh.normals = normales;
+            mesh.uv = uvs;
+            mesh.triangles = triangles;
         }
 
         private void OnSelectActionChange(SteamVR_Action_In actionIn)
