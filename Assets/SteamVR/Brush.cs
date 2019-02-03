@@ -64,15 +64,28 @@ namespace Valve.VR.InteractionSystem.Sample
             public List<smartTriangle> smartTriangles { get; set; }
             public Mesh mesh { get; set; }
 
-            public Stroke() { }
+            public Stroke()
+            {
+                smartTriangles = new List<smartTriangle>();
+                smartVertices = new List<smartVertex>();
+                mesh = new Mesh();
+            }
 
             public Stroke(Mesh mesh)
             {
+                smartTriangles = new List<smartTriangle>();
+                smartVertices = new List<smartVertex>();
+                mesh = new Mesh();
+
                 meshToStroke(mesh);
             }
 
             public Stroke(GameObject gameObject)
             {
+                smartTriangles = new List<smartTriangle>();
+                smartVertices = new List<smartVertex>();
+                mesh = new Mesh();
+
                 MeshFilter filter = gameObject.GetComponent<MeshFilter>();
                 mesh = filter.mesh;
                 meshToStroke(mesh);
@@ -80,8 +93,15 @@ namespace Valve.VR.InteractionSystem.Sample
                     smartVertices[v].position = gameObject.transform.TransformPoint(mesh.vertices[v]);
             }
 
+            public void transformToGameObject(GameObject gameObject)
+            {
+                for (int v = 0; v < smartVertices.Count; v++)
+                    smartVertices[v].position = gameObject.transform.TransformPoint(smartVertices[v].position);
+            }
+
             public Mesh strokeToMesh()
             {
+                mesh = new Mesh();
                 Vector3[] vertices = new Vector3[smartVertices.Count];
                 Vector3[] normals = new Vector3[smartVertices.Count];
                 Vector2[] uvs = new Vector2[smartVertices.Count];
@@ -111,8 +131,9 @@ namespace Valve.VR.InteractionSystem.Sample
                 return mesh;
             }
 
-            void meshToStroke(Mesh mesh)
+            public void meshToStroke(Mesh mesh)
             {
+                this.mesh = mesh;
                 for (int v = 0; v < mesh.vertices.Length; v++)
                 {
                     smartVertex sVert = new smartVertex();
