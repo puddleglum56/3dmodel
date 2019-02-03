@@ -160,6 +160,40 @@ namespace Valve.VR.InteractionSystem.Sample
                     tc++;
                 }
             }
+            public void Add(Stroke stroke2)
+            {
+                List<smartVertex> newVerts = new List<smartVertex>();
+                List<smartTriangle> newTris = new List<smartTriangle>();
+
+                for (int v = 0; v < stroke2.smartVertices.Count; v++)
+                {
+                    smartVertex stroke2Vert = stroke2.smartVertices[v];
+                    smartVertex newVert = new smartVertex();
+                    newVert.type = stroke2Vert.type;
+                    newVert.position = stroke2Vert.position;
+                    newVert.normal = stroke2Vert.normal;
+                    newVert.uv = stroke2Vert.uv;
+                    newVert.triangles = new List<int>();
+
+                    for (int vt = 0; vt < stroke2Vert.triangles.Count; vt++)
+                        newVert.triangles.Add(stroke2Vert.triangles[vt] + smartTriangles.Count);
+                    newVerts.Add(newVert);
+                }
+                for (int t = 0; t < stroke2.smartTriangles.Count; t++)
+                {
+                    smartTriangle stroke2Tri = stroke2.smartTriangles[t];
+                    smartTriangle newTri = new smartTriangle();
+                    newTri.type = stroke2Tri.type;
+                    newTri.vertices = new int[stroke2Tri.vertices.Length];
+
+                    for (int tv = 0; tv < 3; tv++)
+                        newTri.vertices[tv] = stroke2Tri.vertices[tv] + smartVertices.Count;
+
+                    newTris.Add(newTri);
+                }
+                smartVertices.AddRange(newVerts);
+                smartTriangles.AddRange(newTris);
+            }
         }
 
         public class Layer : List<Stroke> { };
