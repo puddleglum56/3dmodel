@@ -431,14 +431,13 @@ namespace Valve.VR.InteractionSystem.Sample
         {
         }
 
-        private Mesh CreateSphere(bool hemisphere)
+        private Stroke CreateSphere(Stroke stroke, bool hemisphere)
         {
-
             // Longitude |||
             int nbLong = 24;
             // Latitude ---
             int nbLat = 16;
-            float radius = 0.5f;
+            float radius = 0.25f;
 
             #region Vertices
             Vector3[] vertices = new Vector3[(nbLong + 1) * ((hemisphere) ? nbLat / 2 : nbLat) + 2];
@@ -536,7 +535,17 @@ namespace Valve.VR.InteractionSystem.Sample
             mesh.uv = uvs;
             mesh.normals = normals;
 
-            return mesh;
+            stroke.meshToStroke(mesh);
+
+            for (int v = 0; v < vertices.Length; v++)
+            {
+                if (v >= vertices.Length - nbLong - 2)
+                    stroke.smartVertices[v].type = 0;
+                else
+                    stroke.smartVertices[v].type = 1;
+            }
+
+            return stroke;
         }
         
         private Stroke CreateRing(Stroke stroke)
