@@ -308,38 +308,31 @@ namespace Valve.VR.InteractionSystem.Sample
 
         private void RenderPaint()
         {
+            Stroke finalStroke = new Stroke();
+            Stroke addedStroke = new Stroke();
+
+            for (int s = 0; s < activeLayer.Count; s++)
+                finalStroke.Add(activeLayer[s]);
+
             MeshFilter filter = paintLayer.GetComponent<MeshFilter>();
-
             Mesh mesh = filter.mesh;
+            mesh.Clear();
+            Mesh finalMesh = finalStroke.strokeToMesh();
 
-            Vector3[] vertices = new Vector3[activeLayer[0].smartVertices.Count];
-            Vector3[] normals = new Vector3[activeLayer[0].smartVertices.Count];
-            Vector2[] uvs = new Vector2[activeLayer[0].smartVertices.Count];
-            Color[] colors = new Color[vertices.Length];
+            Color[] colors = new Color[finalStroke.smartVertices.Count];
 
-            int[] triangles = new int[activeLayer[0].smartTriangles.Count * 3];
-
-            for (int i = 0; i < vertices.Length; i++)
+            for (int i = 0; i < colors.Length; i++)
             {
-                vertices[i] = activeLayer[0].smartVertices[i].position;
-                normals[i] = activeLayer[0].smartVertices[i].normal;
-                uvs[i] = activeLayer[0].smartVertices[i].uv;
-                if (activeLayer[0].smartVertices[i].type == 0)
+                if (finalStroke.smartVertices[i].type == 0)
                     colors[i] = Color.blue;
-            }
-            int tc = 0;
-            for (int i = 0; i < triangles.Length; i+=3)
-            {
-                triangles[i] = activeLayer[0].smartTriangles[tc].vertices[0];
-                triangles[i+1] = activeLayer[0].smartTriangles[tc].vertices[1];
-                triangles[i+2] = activeLayer[0].smartTriangles[tc].vertices[2];
-                tc++;
+                else
+                    colors[i] = Color.black;
             }
 
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.uv = uvs;
-            mesh.normals = normals;
+            mesh.vertices = finalMesh.vertices;
+            mesh.triangles = finalMesh.triangles;
+            mesh.uv = finalMesh.uv;
+            mesh.normals = finalMesh.normals;
             mesh.colors = colors;
         }
 
@@ -354,14 +347,12 @@ namespace Valve.VR.InteractionSystem.Sample
             {
                 brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
                 brushSubMeshInstance.AddComponent<MeshFilter>();
-                Stroke activeStroke = new Stroke();
-                activeStroke.smartTriangles = new List<smartTriangle>();
-                activeStroke.smartVertices = new List<smartVertex>();
-                activeLayer.Add(activeStroke);
-                brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateSphere(true);
+                Stroke tempStroke = new Stroke();
+                brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateSphere(tempStroke, true).mesh;
                 SetBrushSubMeshInstanceTransform();
                 brushSubMeshInstance.transform.rotation = Quaternion.FromToRotation(Vector3.down, hand.transform.position - oldPoint);
-                PopulateVertList(brushSubMeshInstance);
+                tempStroke.transformToGameObject(brushSubMeshInstance);
+                activeLayer.Add(tempStroke);
                 RenderPaint();
             }
 
