@@ -39,10 +39,14 @@ namespace Valve.VR.InteractionSystem.Sample
         {
             public smartVertex()
             {
+                triangles = new List<int>();
             }
 
             public smartVertex(Vector3 position, int type)
             {
+                this.position = position;
+                this.type = type;
+                triangles = new List<int>();
             }
 
             public Vector3 position { get; set; }
@@ -50,12 +54,22 @@ namespace Valve.VR.InteractionSystem.Sample
             public List<int> triangles { get; set; }
             public Vector3 normal { get; set; }
             public Vector2 uv { get; set; }
+            public int order { get; set; }
         }
 
         public class smartTriangle
         {
             public int[] vertices { get; set; }
             public int type { get; set; }
+
+            public smartTriangle()
+            {
+            }
+
+            public smartTriangle(int[] vertices)
+            {
+                this.vertices = vertices;
+            }
         }
 
         public class Stroke
