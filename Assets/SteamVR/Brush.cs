@@ -309,8 +309,10 @@ namespace Valve.VR.InteractionSystem.Sample
                 }
                 if (Vector3.Distance(hand.transform.position, oldPoint) > brushResolution & initialMeshLayed)
                 {
+                    //was sometimes hitting this if statement twice if oldPoint wasn't immediately changed
+                    Vector3 drawPoint = oldPoint;
                     oldPoint = hand.transform.position;
-                    //MiddleExtrudeBrush(oldPoint);
+                    MiddleExtrudeBrush(drawPoint);
                 }
             }
             else if (!executeBrushState & lastExecuteBrushState)
@@ -390,15 +392,87 @@ namespace Valve.VR.InteractionSystem.Sample
                 brushSubMeshInstance = GameObject.Instantiate<GameObject>(brushSubMeshPrefab);
                 brushSubMeshInstance.AddComponent<MeshFilter>();
                 Stroke tempStroke = new Stroke();
-                tempStroke.smartTriangles = new List<smartTriangle>();
-                tempStroke.smartVertices = new List<smartVertex>();
-                //brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateRing();
+                brushSubMeshInstance.GetComponent<MeshFilter>().mesh = CreateRing(tempStroke).mesh;
                 SetBrushSubMeshInstanceTransform();
                 brushSubMeshInstance.transform.rotation = Quaternion.FromToRotation(Vector3.down, hand.transform.position - oldPoint);
-                PopulateVertList(brushSubMeshInstance);
-                JoinMeshes();
+                tempStroke.transformToGameObject(brushSubMeshInstance);
+                JoinHotVertices(activeLayer.Last(),tempStroke);
                 RenderPaint();
             }
+        }
+
+        private void DrawDebugSphere(Vector3 position, Color color)
+        {
+            GameObject debug = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            debug.transform.localScale = 0.05f * Vector3.one;
+            debug.transform.position = position;
+            debug.GetComponent<Renderer>().material.color = color;
+        }
+
+        private void JoinHotVertices(Stroke stroke1, Stroke stroke2)
+        {
+
+            var s1Hot = new List<smartVertex>();
+            var s2Hot = new List<smartVertex>();
+
+            for (int i = 0; i < stroke1.smartVertices.Count; i++)
+                if (stroke1.smartVertices[i].type == 0)
+                {
+                    s1Hot.Add(stroke1.smartVertices[i]);
+                    Debug.Log("im heeerrree");
+                    stroke1.smartVertices[i].type = 1;
+                }
+
+
+            for (int i = 0; i < stroke2.smartVertices.Count; i++)
+                if (stroke2.smartVertices[i].type == 0)
+                {
+                    s2Hot.Add(stroke2.smartVertices[i]);
+                    DrawDebugSphere(stroke2.smartVertices[i].position,Color.red);
+                }
+
+
+            int nt = 0;
+
+            for (int i = 0; i < s1Hot.Count(); i++)
+            {
+                float[] dist = new float[s2Hot.Count];
+                for (int j = 0; j < s2Hot.Count; j++)
+                    dist[j] = Vector3.Distance(s1Hot[i].position, s2Hot[j].position);
+
+                int minDistIndex = FindMinIndex(dist);
+
+                //for now we're assuming we're joining between hemisphere and ring
+                int s1current = s1Hot[i].order;
+                int s1next = s1current + 1;
+                if (s1next > stroke1.smartVertices.Count)
+                    s1next = 0;
+                int s2closest = s2Hot[minDistIndex].order;
+                int s2next = s2closest + 1;
+                if (s2next > stroke2.smartVertices.Count)
+                    s2next = 0;
+
+                //subtract stroke1.smartVertices.Count because it's going to be added again in the stroke.Add() method
+                stroke2.smartTriangles.Add(new smartTriangle(new int[] {s1current - stroke1.smartVertices.Count, s2closest, s2next}));
+                Debug.Log(stroke2.smartTriangles[nt].vertices);
+                //stroke2.smartVertices[s2closest].triangles.Add(nt);
+                //stroke2.smartVertices[s2next].triangles.Add(nt);
+                nt++;
+                stroke2.smartTriangles.Add(new smartTriangle(new int[] { s2next, s1next - stroke1.smartVertices.Count, s1current - stroke1.smartVertices.Count }));
+                //stroke2.smartVertices[s2next].triangles.Add(nt);
+                nt++;
+            }
+
+            stroke1.Add(stroke2);
+        }
+
+        private int FindMinIndex(float[] arr)
+        {
+            int pos = 0;
+            for (int i=0; i < arr.Length; i++)
+                if (arr[i] < arr[pos]) { pos = i; }
+
+            return pos;
         }
 
         private void EndExtrudeBrush()
