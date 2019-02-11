@@ -157,6 +157,7 @@ namespace Valve.VR.InteractionSystem.Sample
                     if (v < mesh.uv.Length)
                         sVert.uv = mesh.uv[v];
                     sVert.triangles = new List<int>();
+                    sVert.order = v;
                     smartVertices.Add(sVert);
                 }
                 int tc = 0;
@@ -189,8 +190,13 @@ namespace Valve.VR.InteractionSystem.Sample
                     newVert.uv = stroke2Vert.uv;
                     newVert.triangles = new List<int>();
 
-                    for (int vt = 0; vt < stroke2Vert.triangles.Count; vt++)
-                        newVert.triangles.Add(stroke2Vert.triangles[vt] + smartTriangles.Count);
+                    if (stroke2Vert.triangles.Any())
+                        for (int vt = 0; vt < stroke2Vert.triangles.Count; vt++)
+                        {
+                            newVert.triangles.Add(stroke2Vert.triangles[vt] + smartTriangles.Count);
+                            newVert.order = stroke2Vert.order + smartVertices.Count;
+                        }
+
                     newVerts.Add(newVert);
                 }
                 for (int t = 0; t < stroke2.smartTriangles.Count; t++)
@@ -567,12 +573,13 @@ namespace Valve.VR.InteractionSystem.Sample
 
             // Longitude |||
             int nbLong = 24;
-            float radius = 0.5f;
+            float radius = 0.25f;
 
             #region Vertices
             Vector3[] vertices = new Vector3[nbLong];
             float _pi = Mathf.PI;
             float _2pi = _pi * 2f;
+            int v = 0;
 
             for (int lon = 0; lon < nbLong; lon++)
             {
@@ -581,7 +588,10 @@ namespace Valve.VR.InteractionSystem.Sample
                 float cos2 = Mathf.Cos(a2);
 
                 smartVertex sVert = new smartVertex(new Vector3(cos2, 0, sin2) * radius, 0);
+                sVert.type = 0;
+                sVert.order = v;
                 stroke.smartVertices.Add(sVert);
+                v++;
             }
             #endregion
 
