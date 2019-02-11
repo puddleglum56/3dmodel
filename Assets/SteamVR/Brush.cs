@@ -630,11 +630,6 @@ namespace Valve.VR.InteractionSystem.Sample
             }
         }
 
-        private void JoinMeshes()
-        {
-
-        }
-
         private void CleanUpBrush()
         {
             MeshFilter[] brushStrokes = activePaintLayer.GetComponentsInChildren<MeshFilter>();
