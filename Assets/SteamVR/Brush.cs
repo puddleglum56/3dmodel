@@ -634,6 +634,7 @@ namespace Valve.VR.InteractionSystem.Sample
             for (int v = 0; v < vertices.Length; v++)
             {
                 if (v >= vertices.Length - nbLong - 2)
+                    // type 0 is 'hot', meaning we're going to try to join this later
                     stroke.smartVertices[v].type = 0;
                 else
                     stroke.smartVertices[v].type = 1;
