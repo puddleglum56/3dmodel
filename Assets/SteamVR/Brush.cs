@@ -533,7 +533,7 @@ namespace Valve.VR.InteractionSystem.Sample
             float radius = 0.25f;
 
             #region Vertices
-            Vector3[] vertices = new Vector3[(nbLong + 1) * ((hemisphere) ? nbLat / 2 : nbLat) + 2];
+            Vector3[] vertices = new Vector3[(nbLong + 1) * ((hemisphere) ? nbLat / 2 : nbLat) + 1];
             float _pi = Mathf.PI;
             float _2pi = _pi * 2f;
 
@@ -553,7 +553,6 @@ namespace Valve.VR.InteractionSystem.Sample
                     vertices[lon + lat * (nbLong + 1) + 1] = new Vector3(sin1 * cos2, cos1, sin1 * sin2) * radius;
                 }
             }
-            vertices[vertices.Length - 1] = Vector3.up * -radius;
             #endregion
 
             #region Normals		
@@ -632,7 +631,7 @@ namespace Valve.VR.InteractionSystem.Sample
 
             for (int v = 0; v < vertices.Length; v++)
             {
-                if (v >= vertices.Length - nbLong - 2)
+                if (v >= vertices.Length - nbLong)
                     // type 0 is 'hot', meaning we're going to try to join this later
                     stroke.smartVertices[v].type = 0;
                 else
