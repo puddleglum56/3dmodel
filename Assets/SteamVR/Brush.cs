@@ -445,20 +445,19 @@ namespace Valve.VR.InteractionSystem.Sample
                 //for now we're assuming we're joining between hemisphere and ring
                 int s1current = s1Hot[i].order;
                 int s1next = s1current + 1;
-                if (s1next > stroke1.smartVertices.Count)
+                if (s1next > stroke1.smartVertices.Count-1)
                     s1next = 0;
-                int s2closest = s2Hot[minDistIndex].order;
+                int s2closest = s2Hot[i].order;
                 int s2next = s2closest + 1;
-                if (s2next > stroke2.smartVertices.Count)
+                if (s2next > stroke2.smartVertices.Count-1)
                     s2next = 0;
 
                 //subtract stroke1.smartVertices.Count because it's going to be added again in the stroke.Add() method
-                stroke2.smartTriangles.Add(new smartTriangle(new int[] {s1current - stroke1.smartVertices.Count, s2closest, s2next}));
-                Debug.Log(stroke2.smartTriangles[nt].vertices);
+                stroke2.smartTriangles.Add(new smartTriangle(new int[] { s1current - stroke1.smartVertices.Count , s2next, s2closest}));
                 //stroke2.smartVertices[s2closest].triangles.Add(nt);
                 //stroke2.smartVertices[s2next].triangles.Add(nt);
                 nt++;
-                stroke2.smartTriangles.Add(new smartTriangle(new int[] { s2next, s1next - stroke1.smartVertices.Count, s1current - stroke1.smartVertices.Count }));
+                stroke2.smartTriangles.Add(new smartTriangle(new int[] { s1current - stroke1.smartVertices.Count, s1next - stroke1.smartVertices.Count, s2next }));
                 //stroke2.smartVertices[s2next].triangles.Add(nt);
                 nt++;
             }
